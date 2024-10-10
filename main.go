@@ -61,6 +61,7 @@ func init() {
 }
 
 func main() {
+	http.HandleFunc("/", homeHandler)
 	http.HandleFunc("/promo", promoHandler)
 	http.HandleFunc("/change", changeHandler)
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
@@ -116,6 +117,9 @@ func changeHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+func homeHandler(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "home.html")
 }
 
 func userFormHandler(w http.ResponseWriter, r *http.Request) {
