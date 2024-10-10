@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Informations de la Classe</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .class-info {
+            background-color: #f4f4f4;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .gender-icon {
+            width: 20px;
+            height: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Informations de la Classe</h1>
+    <div class="class-info">
+        <p><strong>Nom de la classe :</strong> {{.Name}}</p>
+        <p><strong>Filière :</strong> {{.Field}}</p>
+        <p><strong>Niveau :</strong> {{.Level}}</p>
+        <p><strong>Nombre d'étudiants :</strong> {{.StudentCount}}</p>
+    </div>
+    <h2>Liste des étudiants</h2>
+    <table>
+        <tr>
+            <th>Nom</th>
+            <th>Prénom</th>
+            <th>Âge</th>
+            <th>Sexe</th>
+        </tr>
+        {{range .StudentsList}}
+        <tr>
+            <td>{{.LastName}}</td>
+            <td>{{.FirstName}}</td>
+            <td>{{.Age}}</td>
+            <td>
+                {{if eq .Gender "Masculin"}}
+                    <img src="https://img.icons8.com/color/48/000000/male.png" alt="Masculin" class="gender-icon">
+                {{else}}
+                    <img src="https://img.icons8.com/color/48/000000/female.png" alt="Féminin" class="gender-icon">
+                {{end}}
+            </td>
+        </tr>
+        {{end}}
+    </table>
+    </form>
+</body>
+</html>
