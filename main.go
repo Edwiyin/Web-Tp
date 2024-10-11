@@ -76,6 +76,15 @@ func main() {
 	http.ListenAndServe(":8080", nil)
 }
 
+func findStudentIndex(firstName, lastName string) int {
+	for i, student := range class.StudentsList {
+		if student.FirstName == firstName && student.LastName == lastName {
+			return i
+		}
+	}
+	return -1
+}
+
 func promoHandler(w http.ResponseWriter, r *http.Request) {
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -127,12 +136,30 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func userFormHandler(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("userdata")
+	var userData UserData
+	
+	if err == nil {
+		// If cookie exists, pre-fill the form with existing data
+		parts := strings.Split(cookie.Value, "|")
+		if len(parts) == 5 {
+			age, _ := strconv.Atoi(parts[4])
+			userData = UserData{
+				FirstName: parts[0],
+				LastName:  parts[1],
+				BirthDate: parts[2],
+				Gender:    parts[3],
+				Age:       age,
+			}
+		}
+	}
+
 	tmpl, err := template.ParseFiles("templates/user_form.html")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	tmpl.Execute(w, nil)
+	tmpl.Execute(w, userData)
 }
 
 func validateUserData(data *UserData) bool {
@@ -175,6 +202,21 @@ func userTreatmentHandler(w http.ResponseWriter, r *http.Request) {
 		userData.Age = int(time.Since(birthDate).Hours() / 24 / 365)
 
 		mutex.Lock()
+		// Check if user already exists in the class
+		oldCookie, _ := r.Cookie("userdata")
+		if oldCookie != nil {
+			oldData := strings.Split(oldCookie.Value, "|")
+			if len(oldData) == 5 {
+				// Find and remove the old entry
+				oldIndex := findStudentIndex(oldData[0], oldData[1])
+				if oldIndex != -1 {
+					class.StudentsList = append(class.StudentsList[:oldIndex], class.StudentsList[oldIndex+1:]...)
+					class.StudentCount--
+				}
+			}
+		}
+
+		// Add the new/updated entry
 		class.StudentsList = append(class.StudentsList, Student{
 			FirstName: userData.FirstName,
 			LastName:  userData.LastName,
@@ -184,6 +226,7 @@ func userTreatmentHandler(w http.ResponseWriter, r *http.Request) {
 		class.StudentCount++
 		mutex.Unlock()
 
+		// Update the cookie with new data
 		http.SetCookie(w, &http.Cookie{
 			Name:  "userdata",
 			Value: userData.FirstName + "|" + userData.LastName + "|" + userData.BirthDate + "|" + userData.Gender + "|" + fmt.Sprintf("%d", userData.Age),
@@ -219,8 +262,8 @@ func userDisplayHandler(w http.ResponseWriter, r *http.Request) {
 	age, _ := strconv.Atoi(userData[4])
 
 	userDataStruct := UserData{
-		LastName:      userData[0],
-		FirstName:     userData[1],
+		LastName:      userData[1],
+		FirstName:     userData[0],
 		BirthDate:     userData[2],
 		Gender:        userData[3],
 		Age:           age,
