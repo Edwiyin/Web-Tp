@@ -1,9 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
 	"regexp"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -54,7 +57,7 @@ func init() {
 		StudentCount: 3,
 		StudentsList: []Student{
 			{FirstName: "Jean", LastName: "Dupont", Age: 20, Gender: "Masculin"},
-			{FirstName: "Marie", LastName: "Martin", Age: 19, Gender: "Féminin"},
+			{FirstName: "Marie", LastName: "Martin", Age: 19, Gender: "Féminin"},
 			{FirstName: "Pierre", LastName: "Gustav", Age: 21, Gender: "Masculin"},
 		},
 	}
@@ -118,6 +121,7 @@ func changeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
+
 func homeHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "home.html")
 }
@@ -180,6 +184,12 @@ func userTreatmentHandler(w http.ResponseWriter, r *http.Request) {
 		class.StudentCount++
 		mutex.Unlock()
 
+		http.SetCookie(w, &http.Cookie{
+			Name:  "userdata",
+			Value: userData.FirstName + "|" + userData.LastName + "|" + userData.BirthDate + "|" + userData.Gender + "|" + fmt.Sprintf("%d", userData.Age),
+			Path:  "/",
+		})
+
 		http.Redirect(w, r, "/user/display", http.StatusSeeOther)
 	} else {
 		userData.ErrorMessage = "Données invalides. Veuillez vérifier vos informations."
@@ -194,17 +204,28 @@ func userDisplayHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mutex.Lock()
-	defer mutex.Unlock()
+	cookie, err := r.Cookie("userdata")
+	if err != nil {
+		http.Redirect(w, r, "/user/form", http.StatusSeeOther)
+		return
+	}
 
-	lastStudent := class.StudentsList[len(class.StudentsList)-1]
-	userData := UserData{
-		LastName:      lastStudent.LastName,
-		FirstName:     lastStudent.FirstName,
-		Age:           lastStudent.Age,
-		Gender:        lastStudent.Gender,
+	userData := strings.Split(cookie.Value, "|")
+	if len(userData) != 5 {
+		http.Redirect(w, r, "/user/form", http.StatusSeeOther)
+		return
+	}
+
+	age, _ := strconv.Atoi(userData[4])
+
+	userDataStruct := UserData{
+		LastName:      userData[0],
+		FirstName:     userData[1],
+		BirthDate:     userData[2],
+		Gender:        userData[3],
+		Age:           age,
 		IsFormSuccess: true,
 	}
 
-	tmpl.Execute(w, userData)
+	tmpl.Execute(w, userDataStruct)
 }
